@@ -43,6 +43,7 @@ interface OrganogramState {
   createOrganogram: (name: string) => Promise<string | null>;
   listOrganograms: () => Promise<DbOrganogram[]>;
   loadOrganogram: (id: string) => Promise<boolean>;
+  deleteOrganogram: (id: string) => Promise<boolean>;
   saveOrganogram: () => Promise<boolean>;
   saveVersion: () => Promise<boolean>;
   
@@ -239,19 +240,45 @@ const useOrganogramStore = create<OrganogramState>()(
           is_public: false,
         };
         const { data, error } = await supabase.from('organograms').insert(payload).select().single();
-        if (error) return null;
-        set({ currentOrganogramId: data.id });
+        if (error) {
+          console.error('Create Organogram Error:', error);
+          return null;
+        }
+        set({ currentOrganogramId: data.id, nodes: [], edges: [] });
         return data.id as string;
+      },
+
+      importOrganogram: async (name: string, nodes: OrganogramNode[], edges: OrganogramEdge[]) => {
+        if (!supabaseEnabled || !supabase) return false;
+        const user = (await supabase.auth.getUser()).data.user;
+        if (!user) return false;
+
+        const payload = {
+          owner_id: user.id,
+          name,
+          data_json: { nodes, edges, metadata: {} },
+          is_public: false,
+        };
+        
+        const { error } = await supabase.from('organograms').insert(payload);
+        
+        if (error) {
+          console.error('Import Organogram Error:', error);
+          return false;
+        }
+        return true;
       },
 
       listOrganograms: async () => {
         if (!supabaseEnabled || !supabase) return [];
         const user = (await supabase.auth.getUser()).data.user;
-        const { data } = await supabase
+        const { data, error } = await supabase
           .from('organograms')
           .select('*')
           .or(`owner_id.eq.${user?.id},is_public.eq.true`)
           .order('updated_at', { ascending: false });
+          
+        if (error) console.error('List Organograms Error:', error);
         return (data || []) as DbOrganogram[];
       },
 
@@ -262,7 +289,10 @@ const useOrganogramStore = create<OrganogramState>()(
           .select('data_json')
           .eq('id', id)
           .single();
-        if (error || !data?.data_json) return false;
+        if (error || !data?.data_json) {
+            console.error('Load Organogram Error:', error);
+            return false;
+        }
         const payload = data.data_json;
         set({ nodes: payload.nodes as OrganogramNode[], edges: payload.edges as OrganogramEdge[], currentOrganogramId: id });
         return true;
@@ -270,14 +300,60 @@ const useOrganogramStore = create<OrganogramState>()(
 
       saveOrganogram: async () => {
         const { nodes, edges, currentOrganogramId } = get();
-        if (!supabaseEnabled || !supabase || !currentOrganogramId || currentOrganogramId === 'local') return false;
+        
+        // If no cloud ID is set, create a new one automatically or prompt user
+        if (!supabaseEnabled || !supabase) return false;
+        
+        if (!currentOrganogramId || currentOrganogramId === 'local') {
+            // Create new if trying to save cloud for first time
+            const name = prompt('Nome para salvar no Supabase:') || 'Meu Organograma';
+            const user = (await supabase.auth.getUser()).data.user;
+            if (!user) return false;
+
+            const payload = {
+                owner_id: user.id,
+                name,
+                data_json: { nodes, edges, metadata: {} },
+                is_public: false,
+            };
+            const { data, error } = await supabase.from('organograms').insert(payload).select().single();
+            if (error) {
+                console.error('Save New Error:', error);
+                return false;
+            }
+            set({ currentOrganogramId: data.id });
+            return true;
+        }
+
         const { error } = await supabase
           .from('organograms')
-          .update({ data_json: { nodes, edges, metadata: {} } })
+          .update({ 
+            data_json: { nodes, edges, metadata: {} },
+            updated_at: new Date().toISOString()
+           })
           .eq('id', currentOrganogramId);
+        
+        if (error) console.error('Update Error:', error);
         return !error;
       },
 
+      deleteOrganogram: async (id: string) => {
+        if (!supabaseEnabled || !supabase) return false;
+        const { error } = await supabase
+          .from('organograms')
+          .delete()
+          .eq('id', id);
+        if (error) {
+          console.error('Delete Organogram Error:', error);
+          return false;
+        }
+        // If we deleted the current one, reset the current ID but keep data locally
+        if (get().currentOrganogramId === id) {
+          set({ currentOrganogramId: undefined });
+        }
+        return true;
+      },
+      
       saveVersion: async () => {
         const { nodes, edges, currentOrganogramId } = get();
         if (!supabaseEnabled || !supabase || !currentOrganogramId || currentOrganogramId === 'local') return false;

@@ -13,6 +13,17 @@ Aplicação web moderna para criação, edição e exportação de organogramas 
   - **PNG**: Salve como imagem.
   - **Impressão**: Modo de impressão otimizado.
 
+## Configuração do Supabase
+- Preencha o arquivo `.env.local` com:
+  - `VITE_SUPABASE_URL` (Settings → Project → API → Project URL)
+  - `VITE_SUPABASE_ANON_KEY` (Settings → Project → API → anon public)
+- Consulte `.env.example` para o formato.
+- Reinicie `npm run dev` após salvar.
+
+### Schema do Banco
+- No Supabase, abra o SQL Editor e execute [`supabase/schema.sql`](file:///c:/Users/ricar/Documents/trae_projects/organograma/supabase/schema.sql).
+- Isso cria `profiles`, `organograms` e `organogram_versions` com RLS e políticas de acesso.
+
 ## Hierarquia e Regras
 
 A aplicação implementa uma estrutura hierárquica estrita para garantir a consistência dos organogramas:

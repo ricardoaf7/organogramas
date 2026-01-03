@@ -1,5 +1,5 @@
--- Enable UUID extension if needed
--- create extension if not exists "uuid-ossp";
+-- Enable UUID generation (Supabase já dispõe do pgcrypto)
+create extension if not exists pgcrypto;
 
 -- profiles
 create table if not exists public.profiles (
@@ -39,23 +39,55 @@ alter table public.profiles enable row level security;
 alter table public.organograms enable row level security;
 alter table public.organogram_versions enable row level security;
 
--- Policies
-create policy if not exists "profiles self access" on public.profiles
-  for all using (auth.uid() = user_id) with check (auth.uid() = user_id);
+-- Policies (CREATE POLICY não suporta IF NOT EXISTS)
+-- Remova políticas antigas se necessário:
+-- drop policy if exists "profiles self access" on public.profiles;
+-- drop policy if exists "organograms read owner or public" on public.organograms;
+-- drop policy if exists "organograms insert owner" on public.organograms;
+-- drop policy if exists "organograms update owner" on public.organograms;
+-- drop policy if exists "versions read access linked to organogram" on public.organogram_versions;
+-- drop policy if exists "versions insert owner" on public.organogram_versions;
 
-create policy if not exists "organograms read owner or public" on public.organograms
-  for select using (auth.uid() = owner_id or is_public = true);
+create policy "profiles self access" on public.profiles
+  for all
+  to authenticated
+  using (auth.uid() = user_id)
+  with check (auth.uid() = user_id);
 
-create policy if not exists "organograms modify owner" on public.organograms
-  for insert with check (auth.uid() = owner_id)
-  with check (true);
+create policy "organograms read owner or public" on public.organograms
+  for select
+  to authenticated
+  using (auth.uid() = owner_id or is_public = true);
 
-create policy if not exists "organograms update owner" on public.organograms
-  for update using (auth.uid() = owner_id) with check (auth.uid() = owner_id);
+create policy "organograms insert owner" on public.organograms
+  for insert
+  to authenticated
+  with check (auth.uid() = owner_id);
 
-create policy if not exists "versions read access linked to organogram" on public.organogram_versions
-  for select using (exists(select 1 from public.organograms o where o.id = organogram_id and (o.owner_id = auth.uid() or o.is_public = true)));
+create policy "organograms update owner" on public.organograms
+  for update
+  to authenticated
+  using (auth.uid() = owner_id)
+  with check (auth.uid() = owner_id);
 
-create policy if not exists "versions insert owner" on public.organogram_versions
-  for insert with check (exists(select 1 from public.organograms o where o.id = organogram_id and o.owner_id = auth.uid()));
+create policy "versions read access linked to organogram" on public.organogram_versions
+  for select
+  to authenticated
+  using (
+    exists(
+      select 1 from public.organograms o
+      where o.id = organogram_id
+        and (o.owner_id = auth.uid() or o.is_public = true)
+    )
+  );
 
+create policy "versions insert owner" on public.organogram_versions
+  for insert
+  to authenticated
+  with check (
+    exists(
+      select 1 from public.organograms o
+      where o.id = organogram_id
+        and o.owner_id = auth.uid()
+    )
+  );

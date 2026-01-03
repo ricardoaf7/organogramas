@@ -1,5 +1,5 @@
 import React from 'react';
-import { Undo, Redo, Download, Printer, Save, Copy, Trash2, Crop, Plus, FolderOpen, PlusCircle } from 'lucide-react';
+import { Undo, Redo, Download, Printer, Save, Copy, Trash2, Crop, Plus, FolderOpen, PlusCircle, FileJson, Upload } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 interface ToolbarProps {
@@ -7,9 +7,12 @@ interface ToolbarProps {
   onRedo?: () => void;
   onExport?: (format: 'pdf' | 'svg' | 'png') => void;
   onSave?: () => void;
+  onCloudSave?: () => void;
   onNew?: () => void;
   onOpen?: () => void;
   onSaveVersion?: () => void;
+  onExportJson?: () => void;
+  onImportJson?: () => void;
   onDuplicate?: () => void;
   onDelete?: () => void;
   onToggleCrop?: () => void;
@@ -24,9 +27,12 @@ export const Toolbar: React.FC<ToolbarProps> = ({
   onRedo,
   onExport,
   onSave,
+  onCloudSave,
   onNew,
   onOpen,
   onSaveVersion,
+  onExportJson,
+  onImportJson,
   onDuplicate,
   onDelete,
   onToggleCrop,
@@ -57,6 +63,23 @@ export const Toolbar: React.FC<ToolbarProps> = ({
           <FolderOpen size={18} />
         </button>
         
+        <div className="h-6 w-px bg-gray-300 mx-2" />
+        
+        <button
+          onClick={onExportJson}
+          className="p-2 rounded-md hover:bg-gray-100 text-gray-700 transition-colors"
+          title="Exportar Arquivo (Backup JSON)"
+        >
+          <FileJson size={18} />
+        </button>
+        <button
+          onClick={onImportJson}
+          className="p-2 rounded-md hover:bg-gray-100 text-gray-700 transition-colors"
+          title="Importar Arquivo (Backup JSON)"
+        >
+          <Upload size={18} />
+        </button>
+
         <div className="h-6 w-px bg-gray-300 mx-2" />
         
         <button
@@ -143,6 +166,14 @@ export const Toolbar: React.FC<ToolbarProps> = ({
           title="Salvar Localmente"
         >
           <Save size={18} />
+        </button>
+        <button
+          onClick={onCloudSave}
+          className="p-2 rounded-md hover:bg-gray-100 text-gray-700 transition-colors ml-1"
+          title="Salvar no Supabase"
+        >
+          <Save size={18} />
+          <span className="text-sm ml-1 hidden sm:inline">Cloud</span>
         </button>
         <button
           onClick={onSaveVersion}

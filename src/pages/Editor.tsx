@@ -76,6 +76,11 @@ export const Editor = () => {
     store.takeSnapshot();
     alert('Organograma salvo localmente!');
   };
+  const handleCloudSave = async () => {
+    const ok = await useOrganogramStore.getState().saveOrganogram();
+    if (ok) alert('Organograma salvo no Supabase!');
+    else alert('Falha ao salvar no Supabase. Verifique login e variáveis de ambiente.');
+  };
 
   const handleNew = async () => {
     const name = prompt('Nome do novo organograma:') || 'Organograma';
@@ -99,6 +104,47 @@ export const Editor = () => {
     else alert('Falha ao salvar versão.');
   };
 
+  const handleExportJson = () => {
+    const { nodes, edges } = useOrganogramStore.getState();
+    const data = JSON.stringify({ nodes, edges }, null, 2);
+    const blob = new Blob([data], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `organograma-${new Date().toISOString().split('T')[0]}.json`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+  };
+
+  const handleImportJson = () => {
+    const input = document.createElement('input');
+    input.type = 'file';
+    input.accept = '.json';
+    input.onchange = (e) => {
+      const file = (e.target as HTMLInputElement).files?.[0];
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = (event) => {
+        try {
+          const json = JSON.parse(event.target?.result as string);
+          if (json.nodes && json.edges) {
+            useOrganogramStore.setState({ nodes: json.nodes, edges: json.edges });
+            alert('Organograma importado com sucesso!');
+          } else {
+            alert('Arquivo inválido: formato JSON incorreto.');
+          }
+        } catch (err) {
+          console.error(err);
+          alert('Erro ao ler arquivo JSON.');
+        }
+      };
+      reader.readAsText(file);
+    };
+    input.click();
+  };
+
   return (
     <Layout
       toolbarProps={{
@@ -108,9 +154,12 @@ export const Editor = () => {
         canRedo: history.future.length > 0,
         onExport: handleExport,
         onSave: handleSave,
+        onCloudSave: handleCloudSave,
         onNew: handleNew,
         onOpen: handleOpen,
         onSaveVersion: handleSaveVersion,
+        onExportJson: handleExportJson,
+        onImportJson: handleImportJson,
         onDuplicate: handleDuplicate,
         onDelete: handleDelete,
         onToggleCrop: () => toggleCropMode(!isCropMode),
