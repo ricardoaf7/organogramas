@@ -12,7 +12,46 @@ export const OpenDialog: React.FC<OpenDialogProps> = ({ open, onClose, onSelect 
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [query, setQuery] = useState('');
-  const { deleteOrganogram } = useOrganogramStore();
+  const { deleteOrganogram, importOrganogram } = useOrganogramStore();
+
+  const handleImportClick = () => {
+    const input = document.createElement('input');
+    input.type = 'file';
+    input.accept = '.json';
+    input.onchange = (e) => {
+      const file = (e.target as HTMLInputElement).files?.[0];
+      if (!file) return;
+
+      const reader = new FileReader();
+      reader.onload = async (event) => {
+        try {
+          const json = JSON.parse(event.target?.result as string);
+          if (json.nodes && json.edges) {
+            // Suggest name based on filename or existing title
+            const defaultName = file.name.replace('.json', '');
+            const name = prompt('Nome para o organograma importado:', defaultName) || defaultName;
+            
+            setLoading(true);
+            const success = await importOrganogram(name, json.nodes, json.edges);
+            if (success) {
+              alert('Organograma importado para a nuvem com sucesso!');
+              fetchItems(); // Refresh list
+            } else {
+              alert('Erro ao importar organograma.');
+            }
+            setLoading(false);
+          } else {
+            alert('Arquivo inválido: formato JSON incorreto.');
+          }
+        } catch (err) {
+          console.error(err);
+          alert('Erro ao ler arquivo JSON.');
+        }
+      };
+      reader.readAsText(file);
+    };
+    input.click();
+  };
 
   const fetchItems = async () => {
     if (!open) return;
