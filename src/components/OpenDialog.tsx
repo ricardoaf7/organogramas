@@ -15,7 +15,8 @@ export const OpenDialog: React.FC<OpenDialogProps> = ({ open, onClose, onSelect 
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [query, setQuery] = useState('');
-  const { deleteOrganogram, importOrganogram } = useOrganogramStore();
+  const { deleteOrganogram } = useOrganogramStore();
+  const importOrganogram = (useOrganogramStore.getState() as any).importOrganogram;
 
   const handleImportClick = () => {
     const input = document.createElement('input');
