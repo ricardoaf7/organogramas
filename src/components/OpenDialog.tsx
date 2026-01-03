@@ -1,5 +1,7 @@
-import { Trash2 } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { Trash2, Upload } from 'lucide-react';
 import useOrganogramStore from '@/store/useOrganogramStore';
+import { supabase, supabaseEnabled, DbOrganogram } from '@/lib/supabase';
 
 interface OpenDialogProps {
   open: boolean;
@@ -151,4 +153,3 @@ export const OpenDialog: React.FC<OpenDialogProps> = ({ open, onClose, onSelect 
     </div>
   );
 };
-
