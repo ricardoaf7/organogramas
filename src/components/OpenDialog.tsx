@@ -8,6 +8,7 @@ interface OpenDialogProps {
 }
 
 export const OpenDialog: React.FC<OpenDialogProps> = ({ open, onClose, onSelect }) => {
+  // State for managing organogram list and UI status
   const [items, setItems] = useState<DbOrganogram[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
